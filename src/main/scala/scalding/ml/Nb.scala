@@ -59,17 +59,17 @@ object GaussianNB extends NBCore {
   }
 
   def classify(data : TypedPipe[Point], model : TypedPipe[GNBModel], nReducers : Int = 100)(implicit fd: FlowDef) : TypedPipe[(Int, String, Double)]= {
-    
     data
       .cross(model)
       // [(Point, GNBModel)]
       .groupBy(_._1.id.get)  // group by Point.id
       .mapValues{ tup =>
         val (pt, model) = tup
+        // calculate score for each feature/class
         val score = pt.values.zip(model.mom).map { v: (Double, Moments) =>
           _gaussian_prob(v._2.mean, v._2.variance, v._1)
-        }.map(i => i + model.prior).sorted.head
-        (pt.clazz.get, score)
+        }.sum + model.prior
+        (model.clazz, score)
       }      
       .toTypedPipe.map{tup: (Int, (String, Double)) => (tup._1, tup._2._1, tup._2._2)}
       // group by id, sort by score, take the top

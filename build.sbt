@@ -6,7 +6,7 @@ name := "scalding-ml"
 
 version := "0.0.1"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.10.0"
 
 resolvers ++= Seq(
   "snapshots" at "http://oss.sonatype.org/content/repositories/snapshots",
@@ -16,7 +16,7 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "ch.qos.logback" % "logback-classic" % "1.0.13",
+  "ch.qos.logback" % "logback-classic" % "1.0.13" % "provided",
   "com.twitter" % "scalding-core_2.10" % "0.9.0rc4",
   "com.twitter" % "scalding-args_2.10" % "0.9.0rc4",
   "org.apache.hadoop" % "hadoop-core" % "0.20.2"

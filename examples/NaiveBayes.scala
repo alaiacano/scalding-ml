@@ -15,16 +15,17 @@ class NBTestJob(args: Args) extends Job(args) {
     )
     .filter(pt => !(pt.clazz.isEmpty || pt.id.isEmpty))
 
-
   val trainSet = iris.filter(_.id.get % 3 != 0)
+
   val testSet = iris.filter(_.id.get % 3 == 0)
-    // .map(pt => pt.id.get)
+    // .map(Point.removeClazz(_))
 
   val model = GaussianNB.fit(trainSet)
-    
+
   model.map(t => (t.clazz, t.mom, t.prior))
-       .write(TypedTsv[(String, Seq[Moments], Double)]("model.tsv"))
+    .write(TypedTsv[(String, Seq[Moments], Double)]("model.tsv"))
 
   val pred = GaussianNB.classify(testSet, model)
     .write(TypedTsv[(Int, String, Double)](output))
 }
+
