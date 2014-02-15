@@ -80,9 +80,8 @@ object GaussianNB extends NBCore {
 
   }
 
-
   private def _gaussian_prob(mu : Double, sigma : Double, score : Double) : Double = {
-    // from sklearn:
+    // from sklearn (they call sigma theta?):
     // n_ij = - 0.5 * np.sum(np.log(np.pi * self.sigma_[i, :]))
     //     n_ij -= 0.5 * np.sum(((X - self.theta_[i, :]) ** 2) /
     //                          (self.sigma_[i, :]), 1)
