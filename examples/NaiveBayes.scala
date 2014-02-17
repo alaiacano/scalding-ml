@@ -32,10 +32,10 @@ class NBTestJob(args: Args) extends Job(args) {
   model.map(t => (t.clazz, t.mom, t.prior))
     .write(TypedTsv[(String, Seq[Moments], Double)]("model.tsv"))
 
-  // classify returns a TypedPipe with a Tuple3: id, class, and classification 
+  // predict returns a TypedPipe with a Tuple3: id, class, and classification 
   // score, which is related to the log probability of the flower containing to
   // that class
-  val pred : TypedPipe[Point[Double]]= GaussianNB.classify(testSet, model)
+  val pred : TypedPipe[Point[Double]]= GaussianNB.predict(testSet, model)
     .write(TypedTsv[Point[Double]](output))
 }
 

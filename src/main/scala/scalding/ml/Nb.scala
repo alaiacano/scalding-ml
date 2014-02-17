@@ -58,7 +58,7 @@ object GaussianNB extends NBCore {
         .map{tup: (String, (Seq[Moments], Double)) => GNBModel(tup._1, tup._2._1, tup._2._2)}
   }
 
-  def classify(data : TypedPipe[Point[Double]], model : TypedPipe[GNBModel], nReducers : Int = 100)(implicit fd: FlowDef) : TypedPipe[Point[Double]]= {
+  def predict(data : TypedPipe[Point[Double]], model : TypedPipe[GNBModel], nReducers : Int = 100)(implicit fd: FlowDef) : TypedPipe[Point[Double]]= {
     data
       .cross(model)
       // [(Point, GNBModel)]

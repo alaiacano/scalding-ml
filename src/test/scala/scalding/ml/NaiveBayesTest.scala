@@ -21,7 +21,7 @@ class NaiveBayesJob(args : Args) extends Job(args) {
   // build the model.
   val model : TypedPipe[GNBModel] = GaussianNB.fit(trainSet)
 
-  val pred : TypedPipe[(Int,Int)]= GaussianNB.classify(testSet, model)
+  val pred : TypedPipe[(Int,Int)]= GaussianNB.predict(testSet, model)
     .map(pt => (pt.id.get, pt.clazz.get.toInt))
     .write(TypedTsv[(Int, Int)]("outputFile"))
 }
