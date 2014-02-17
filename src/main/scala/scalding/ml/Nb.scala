@@ -14,7 +14,7 @@ abstract trait NBCore {
    * model.
    *
    */
-  // def fit(pipe: TypedPipe[Point])(implicit fd: FlowDef) : TypedPipe[(String, Seq[Moments], Double)]
+  // def fit(pipe: TypedPipe[Point])(implicit fd: FlowDef) : TypedPipe[Point]
 
   /**
    * Calculates the prior value for all classes, `Pr(class = C)`
@@ -58,7 +58,7 @@ object GaussianNB extends NBCore {
         .map{tup: (String, (Seq[Moments], Double)) => GNBModel(tup._1, tup._2._1, tup._2._2)}
   }
 
-  def classify(data : TypedPipe[Point[Double]], model : TypedPipe[GNBModel], nReducers : Int = 100)(implicit fd: FlowDef) : TypedPipe[(Int, String, Double)]= {
+  def classify(data : TypedPipe[Point[Double]], model : TypedPipe[GNBModel], nReducers : Int = 100)(implicit fd: FlowDef) : TypedPipe[Point[Double]]= {
     data
       .cross(model)
       // [(Point, GNBModel)]
@@ -71,10 +71,11 @@ object GaussianNB extends NBCore {
         }.sum + model.prior
         (model.clazz, score)
       }      
-      .toTypedPipe.map{tup: (Int, (String, Double)) => (tup._1, tup._2._1, tup._2._2)}
+      .toTypedPipe
+      .map{tup: (Int, (String, Double)) => Point[Double](Some(tup._1), Some(tup._2._1), tup._2._2)}
       // group by id, sort by score, take the top
-      .groupBy(_._1)
-      .sortBy(_._3 * -1.0)
+      .groupBy(_.id.get)
+      .sortBy(_.values(0) * -1.0)
       .take(1)
       .values
 
