@@ -28,7 +28,7 @@ class KnnJob(args : Args) extends Job(args) {
   val model = Knn.fit(trainSet)
   
   // Apply the model
-  val pred = Knn.classify(testSet, model, k)(Distance.euclidean)
+  val pred = Knn.predict(testSet, model, k)(Distance.euclidean)
     .map(pt => (pt.id.get, pt.clazz.get.toInt))
     .write(TypedTsv[(Int, Int)]("outputFile"))
 }
