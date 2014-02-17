@@ -1,1 +1,1 @@
-This is a mega work in progress. If you want to help, get in touch.
+This is a mega work in progress. If you want to help, get in touch. Take note that there are no tests (yet).
