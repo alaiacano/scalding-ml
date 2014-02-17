@@ -68,11 +68,11 @@ object Knn {
     // probs will give us the probability of a point belonging to each class.
     // need to group by id/class, sort by probability and return the max.
     val ml = predictProba(data, model, k)(distfn)
-      .groupBy{t => (t.id.get, t.clazz.get)}
+      .groupBy{_.id.get}
       .sortBy(_.values(0) * -1)
       .take(1)
       .values
-
+      .map(pt => Point[Double](pt.id, pt.clazz, pt.values(0)))
     ml
   }
 
