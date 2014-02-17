@@ -15,11 +15,21 @@ resolvers ++= Seq(
   "Codahale" at "http://repo.typesafe.com/typesafe/releases"
 )
 
+val chillVersion = "0.3.4"
+
+test in assembly := {}
+
 libraryDependencies ++= Seq(
+  "org.scalacheck" %% "scalacheck" % "1.10.0" % "test",
+  "org.scala-tools.testing" %% "specs" % "1.6.9" % "test",
+  "org.mockito" % "mockito-all" % "1.8.5" % "test",
   "ch.qos.logback" % "logback-classic" % "1.0.13" % "provided",
   "com.twitter" % "scalding-core_2.10" % "0.9.0rc4",
   "com.twitter" % "scalding-args_2.10" % "0.9.0rc4",
-  "org.apache.hadoop" % "hadoop-core" % "0.20.2"
+  "org.apache.hadoop" % "hadoop-core" % "0.20.2",
+  "com.twitter" %% "chill" % chillVersion % "provided",
+  "com.twitter" % "chill-hadoop" % chillVersion % "provided",
+  "com.twitter" % "chill-java" % chillVersion % "provided"
 )
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>

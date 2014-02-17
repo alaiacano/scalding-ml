@@ -19,7 +19,7 @@ abstract trait NBCore {
   /**
    * Calculates the prior value for all classes, `Pr(class = C)`
    */
-  def classPrior(pipe : TypedPipe[Point], nReducers : Int = 50)(implicit fd: FlowDef) : TypedPipe[(String, Double)] = {
+  def classPrior[T](pipe : TypedPipe[Point[T]], nReducers : Int = 50)(implicit fd: FlowDef) : TypedPipe[(String, Double)] = {
     val counts = pipe.groupBy(_.clazz.get).size
     val totSum = counts.groupBy{x => 1}.mapValues(_._2).sum
 
@@ -47,8 +47,8 @@ case class GNBModel(clazz: String, mom: Seq[Moments], prior: Double)
 object GaussianNB extends NBCore {
   import Dsl._
 
-  def fit(pipe: TypedPipe[Point])(implicit fd: FlowDef) : TypedPipe[GNBModel] = {
-    val classPriorValues = classPrior(pipe).groupBy(_._1).mapValues(_._2)
+  def fit(pipe: TypedPipe[Point[Double]])(implicit fd: FlowDef) : TypedPipe[GNBModel] = {
+    val classPriorValues = classPrior[Double](pipe).groupBy(_._1).mapValues(_._2)
     pipe.groupBy(_.clazz.get)
         .mapValues(pt => pt.values.map(i => Moments(i)).toIndexedSeq)
         .reduce((a: Seq[Moments], b: Seq[Moments]) => a.zip(b).map(c => c._1 + c._2))
@@ -58,7 +58,7 @@ object GaussianNB extends NBCore {
         .map{tup: (String, (Seq[Moments], Double)) => GNBModel(tup._1, tup._2._1, tup._2._2)}
   }
 
-  def classify(data : TypedPipe[Point], model : TypedPipe[GNBModel], nReducers : Int = 100)(implicit fd: FlowDef) : TypedPipe[(Int, String, Double)]= {
+  def classify(data : TypedPipe[Point[Double]], model : TypedPipe[GNBModel], nReducers : Int = 100)(implicit fd: FlowDef) : TypedPipe[(Int, String, Double)]= {
     data
       .cross(model)
       // [(Point, GNBModel)]
