@@ -29,57 +29,53 @@ object Knn {
    * @param k Number of neighbors to use in the classification (the "k" in "kNN")
    * @return A pipe with three fields: whatever you called `idFields`, `class` and `classCount`.
    */
-  def classify(data: TypedPipe[Point[Double]], model: TypedPipe[Point[Double]], k: Int)
+  def predictProba(data: TypedPipe[Point[Double]], model: TypedPipe[Point[Double]], k: Int)
               (distfn : (Point[Double],Point[Double]) => Double)
-              (implicit fd: FlowDef) : TypedPipe[Point[Long]] = {
-    val predictions : TypedPipe[Point[Double]] = data
+              (implicit fd: FlowDef) : TypedPipe[Point[Double]] = {
+    val scores : TypedPipe[Point[Double]] = data
       //remove any point that's missing an ID and remove all the classes in case they're there.
       .filter(_.id.isEmpty == false)
-      .map(Point.removeClazz[Double](_))
      
       // !!!!!!!!!!! DANGER !!!!!!!!!!!
       .cross(model)
 
-      // calculate distance. Output is (new point, model point, distance)
-      .map{tup: (Point[Double], Point[Double]) => (tup._1, tup._2, distfn(tup._1, tup._2))}
+      // The output here is the ID of the input point, the clazz of the model
+      // point it's being compared to and the distance between them.
+      .map{tup: (Point[Double], Point[Double]) => 
+        val (testData, model) = tup
+        Point[Double](testData.id, model.clazz, distfn(testData, model))
+      }
 
       // Group by the id of the point we want to classify and sort by distance
-      .groupBy(_._1.id.get)
-      .sortBy(_._3)
+      .groupBy(_.id.get)
+      .sortBy(_.values(0))
 
       // keep the closest K points. (the sort/take can be sped up later)
       .take(k)
       .values
-      
-      // still have (new point, data point, distance). drop that down to one point.
-      // and assign the model class value to the point. So now we'll have K entries
-      // for each point, with a mixture of clazz names that correspond to each of the
-      // K closest points in the training set.
-      .map{ tup : (Point[Double], Point[Double], Double) => 
-        val (newPoint, modelPoint, dist) = tup
-        Point[Double](newPoint.id, modelPoint.clazz, newPoint.values:_*)
-      }
 
-    val results = predictions
       // Need to group/count and take majority rule vote.
-      .groupBy[Point[Double]](t => t)
+      .groupBy(t => (t.id.get, t.clazz.get))
       .size
+      .map{tup => Point[Double](Some(tup._1._1), Some(tup._1._2), tup._2.toDouble / k)}
+    scores
+  }
 
-      .groupBy(_._1)
-      // now the pipe is of type [Point, (Point, Long)] where the Points are the same.
-      // Sort by the Long (count) descending and take the top
-      .sortBy(_._2 * -1.0)
+  def predict(data: TypedPipe[Point[Double]], model: TypedPipe[Point[Double]], k: Int)
+              (distfn : (Point[Double],Point[Double]) => Double)
+              (implicit fd: FlowDef) : TypedPipe[Point[Double]] = {
+
+    // probs will give us the probability of a point belonging to each class.
+    // need to group by id/class, sort by probability and return the max.
+    val ml = predictProba(data, model, k)(distfn)
+      .groupBy{t => (t.id.get, t.clazz.get)}
+      .sortBy(_.values(0) * -1)
       .take(1)
       .values
 
-      // Returna  Point[Long] with the original point ID, predicted class,
-      // and the number of the K nearest neighbors that belong to that class.
-      .map{tup => 
-        val (pt, cnt) = tup
-        Point[Long](pt.id, pt.clazz, cnt)
-      }
-    results
+    ml
   }
+
 
 }
 
