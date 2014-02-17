@@ -2,7 +2,7 @@ package scalding.ml
 
 import com.twitter.scalding._
 import cascading.flow.FlowDef
-import Point._
+import Point._ // needed for implicit Ordering
 
 object Knn {
   import TDsl._
@@ -24,16 +24,14 @@ object Knn {
   /**
    * Uses the model to classify the input data pipe.
    *
-   * @param data A pipe containing a field of `Point`s and a field of id's
+   * @param data A TypedPipe[Point[Double]] with the points you want to classify. The `id` field must exist for each point.
    * @param model The pipe returned from the `fit` method.
-   * @param featureField A field containing your features (`Point`s).
-   * @param idFields A field containing a unique ID for each data point.
    * @param k Number of neighbors to use in the classification (the "k" in "kNN")
    * @return A pipe with three fields: whatever you called `idFields`, `class` and `classCount`.
    */
   def classify(data: TypedPipe[Point[Double]], model: TypedPipe[Point[Double]], k: Int)
-              (distfn : (Point[Double],Point[Double]) => Double )
-              (implicit fd: FlowDef) : TypedPipe[Point[Double]] = {
+              (distfn : (Point[Double],Point[Double]) => Double)
+              (implicit fd: FlowDef) : TypedPipe[Point[Long]] = {
     val predictions : TypedPipe[Point[Double]] = data
       //remove any point that's missing an ID and remove all the classes in case they're there.
       .filter(_.id.isEmpty == false)
@@ -62,19 +60,25 @@ object Knn {
         Point[Double](newPoint.id, modelPoint.clazz, newPoint.values:_*)
       }
 
-    val wtf = predictions
+    val results = predictions
       // Need to group/count and take majority rule vote.
       .groupBy[Point[Double]](t => t)
       .size
 
       .groupBy(_._1)
-      // // now the pipe is of type [Point, (Point, Long)]
-      .sortBy(_._2)
-      .reverse
+      // now the pipe is of type [Point, (Point, Long)] where the Points are the same.
+      // Sort by the Long (count) descending and take the top
+      .sortBy(_._2 * -1.0)
       .take(1)
       .values
-      .map(_._1)
-    wtf
+
+      // Returna  Point[Long] with the original point ID, predicted class,
+      // and the number of the K nearest neighbors that belong to that class.
+      .map{tup => 
+        val (pt, cnt) = tup
+        Point[Long](pt.id, pt.clazz, cnt)
+      }
+    results
   }
 
 }
