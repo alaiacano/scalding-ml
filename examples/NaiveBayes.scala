@@ -35,7 +35,7 @@ class NBTestJob(args: Args) extends Job(args) {
   // classify returns a TypedPipe with a Tuple3: id, class, and classification 
   // score, which is related to the log probability of the flower containing to
   // that class
-  val pred : TypedPipe[(Int, String, Double)]= GaussianNB.classify(testSet, model)
-    .write(TypedTsv[(Int, String, Double)](output))
+  val pred : TypedPipe[Point[Double]]= GaussianNB.classify(testSet, model)
+    .write(TypedTsv[Point[Double]](output))
 }
 

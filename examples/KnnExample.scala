@@ -21,7 +21,8 @@ class KnnExampleJob(args: Args) extends Job(args) {
   val model = Knn.fit(trainSet)
   
   // Apply the model
-  val pred : TypedPipe[Point[Double]]= Knn.classify(testSet, model, k)(Distance.euclidean)
-    .write(TypedTsv[Point[Double]](args("output")))
+  val pred = Knn.classify(testSet, model, k)(Distance.euclidean)
+    .map(pt => (pt.id.get, pt.clazz.get.toInt))
+    .write(TypedTsv[(Int, Int)](args("output")))
 
 }
