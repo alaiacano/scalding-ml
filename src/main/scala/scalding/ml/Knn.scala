@@ -11,10 +11,6 @@ object Knn {
   /**
    * "Trains" a model for K-Nearest Neighbors. It really just filters the input
    * data to remove any un-labeled data points.
-   *
-   * {{{
-   *   val model = Knn.fit(trainingSet, ('feature1, 'feature2), 'label)
-   * }}}
    */
   def fit(trainingSet: TypedPipe[Point[Double]])(implicit fd: FlowDef) : TypedPipe[Point[Double]] = {
     trainingSet
@@ -76,6 +72,30 @@ object Knn {
     ml
   }
 
-
 }
 
+object ApproximateKnn {
+  import TDsl._
+  import Dsl._
+
+  val defaultNumHashes = 50
+  val defaultNumBands = 20
+
+  def apply() = new ApproximateKnn(defaultNumHashes)
+  def apply(numHashes: Int) = new ApproximateKnn(numHashes)
+}
+
+class ApproximateKnn(numHashes: Int) {
+
+  implicit lazy val minHasher = new MinHasher32(numHashes, ApproximateKnn.defaultNumBands)
+  
+  /**
+   * "Trains" a model for K-Nearest Neighbors. It really just filters the input
+   * data to remove any un-labeled data points.
+   */
+  def fit(trainingSet: TypedPipe[Point[Long]])(implicit fd: FlowDef) : TypedPipe[Point[Double]] = {
+    trainingSet
+      .filter(_.clazz.isEmpty == false)
+      .map { pt => (pt.clazz.get, pt.values.map(val => minHasher.init(val))) }
+  }  
+}
