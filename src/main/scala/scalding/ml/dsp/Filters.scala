@@ -22,6 +22,10 @@ object Filters {
           }
       }
 
+      // case(0, 1) => // single-zero filter can use var prevInput instead of ListBuffer. Worth it?
+      // case(0, _) => // all-pole filter
+      // case(_, 0) => // all-zero filter
+
       // full blown filter
       case (_, _) => {
         val prevInputs  = ListBuffer.fill[Double](zeros.size)(0.0)
