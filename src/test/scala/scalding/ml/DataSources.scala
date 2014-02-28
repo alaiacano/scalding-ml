@@ -28,4 +28,18 @@ object DataSources {
 
   // Returns the iris data set as an Seq[Point]
   def loadIrisPoints : Seq[Point[Double]] = loadIrisTuples.map(i => Point[Double](Some(i._1), Some(i._2), i._3, i._4, i._5, i._6))
+
+
+  /////////////////////// DSP STUFF
+  def dspNoisey : Seq[Double] = loadSingleColumn[Double]("/dsp/noisey.tsv")
+  def dspClean  : Seq[Double] = loadSingleColumn[Double]("/dsp/filtered.tsv")
+
+
+  /////////////////////// TOOLS
+  private def loadSingleColumn[T](path: String) : Seq[T] = {
+    Source.fromURL(getClass.getResource(path))
+          .mkString
+          .split("\n")
+          .map { line => line.asInstanceOf[T] }
+  }
 }
