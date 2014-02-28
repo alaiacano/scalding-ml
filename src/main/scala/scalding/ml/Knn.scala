@@ -2,6 +2,7 @@ package scalding.ml
 
 import com.twitter.scalding._
 import cascading.flow.FlowDef
+import com.twitter.algebird.{ MinHasher, MinHasher32, MinHashSignature }
 import Point._ // needed for implicit Ordering
 
 object Knn {
@@ -93,9 +94,15 @@ class ApproximateKnn(numHashes: Int) {
    * "Trains" a model for K-Nearest Neighbors. It really just filters the input
    * data to remove any un-labeled data points.
    */
-  def fit(trainingSet: TypedPipe[Point[Long]])(implicit fd: FlowDef) : TypedPipe[Point[Double]] = {
+  def fit(trainingSet: TypedPipe[Point[Long]])(implicit fd: FlowDef) : TypedPipe[((Int, String), IndexedSeq[MinHashSignature])] = {
     trainingSet
       .filter(_.clazz.isEmpty == false)
-      .map { pt => (pt.clazz.get, pt.values.map(val => minHasher.init(val))) }
+      // fit
+      .map { pt => 
+        val hashes = pt.values.map(v => minHasher.init(v))
+        ((pt.id.get, pt.clazz.get), IndexedSeq(hashes:_*))
+      }
+      .group[(Int, String), IndexedSeq[MinHashSignature]]
+      .sum
   }  
 }

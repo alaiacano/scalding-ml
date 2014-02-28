@@ -17,7 +17,7 @@ resolvers ++= Seq(
 
 val chillVersion = "0.3.4"
 
-// test in assembly := {}
+test in assembly := {}
 
 libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck" % "1.10.0" % "test",
