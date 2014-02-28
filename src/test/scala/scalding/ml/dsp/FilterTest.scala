@@ -15,48 +15,56 @@ object TUtil {
   }
 }
 
-class KnnJob(args : Args) extends Job(args) {
-  //Word count using TypedPipe
-  val k = 15
-  val iris = TypedTsv[(Int, String, Double, Double, Double, Double)]("inputFile")
-    .map { w => Point[Double](Some(w._1),Some(w._2), w._3, w._4, w._5, w._6) }
+class DigitalFilterJob(args : Args) extends Job(args) {
 
-  val trainSet : TypedPipe[Point[Double]] = iris.filter(_.id.get % 3 != 0)
-  val testSet : TypedPipe[Point[Double]] = iris.filter(_.id.get % 3 == 0)
-    .map(Point.removeClazz[Double](_))  // we'll try to predict this!
-
-  // prepare the model
-  val model = Knn.fit(trainSet)
-
-  // Apply the model
-  val pred = Knn.predict(testSet, model, k)(Distance.euclidean)
-    .map(pt => (pt.id.get, pt.clazz.get.toInt))
-    .write(TypedTsv[(Int, Int)]("outputFile"))
-}
-
-class KnnTest extends Specification {
-  import Dsl._
-
-  val iris = DataSources.loadIrisTuples.toList
-  val scikitResults = Map[Int,Int](
-    0 -> 0,3 -> 0,6 -> 0,9 -> 0,12 -> 0,15 -> 0,18 -> 0,21 -> 0,24 -> 0,27 -> 0,
-    30 -> 0,33 -> 0,36 -> 0,39 -> 0,42 -> 0,45 -> 0,48 -> 0,51 -> 1,54 -> 1,57 -> 1,
-    60 -> 1,63 -> 1,66 -> 1,69 -> 1,72 -> 2,75 -> 1,78 -> 1,81 -> 1,84 -> 1,87 -> 1,
-    90 -> 1,93 -> 1,96 -> 1,99 -> 1,102 -> 2,105 -> 2,108 -> 2,111 -> 2,
-    114 -> 2,117 -> 2,120 -> 2,123 -> 2,126 -> 2,129 -> 2,132 -> 2,135 -> 2,
-    138 -> 2,141 -> 2,144 -> 2,147 -> 2
+  val poles = Seq(
+    8.88199322e-07,   7.10559458e-06,   2.48695810e-05,
+    4.97391620e-05,   6.21739525e-05,   4.97391620e-05,
+    2.48695810e-05,   7.10559458e-06,   8.88199322e-07
   )
 
-  noDetailedDiffs() //Fixes an issue with scala 2.9
-  "A Knn job" should {
+  val zeros = Seq(
+    1.0        ,  -5.98842478,  15.88837987, -24.35723742,
+    23.57037937, -14.72938334,   5.80019014,  -1.31502712,
+    0.13135067
+  )
+
+  val data = TypedTsv[(Long, Double)]("inputFile")
+    .map { case (id, value) => (1, (id, value)) }
+    .group
+
+  val filtered = Filters.iir[Int](data, zeros, poles, 1L)
+    .toTypedPipe
+    .map    { case (grp, (ts, value)) => (grp, ts, value) }
+    .filter { case (grp, id, value) => id != 0L }
+    .write(TypedTsv[(Int, Long, Double)]("outputFile"))
+}
+
+class DigitalFilterTest extends Specification {
+  import Dsl._
+  import com.twitter.algebird.Operators._
+  val noisey   = DataSources.dspNoisey
+
+  // creates a lookup map for the filtered results.
+  val filtered = DataSources.dspFiltered
+                            .map{case (k,v) => Map(k->v)}
+                            .reduce(_+_)
+
+  noDetailedDiffs()
+  "A DigitalFilterJob" should {
+
     TUtil.printStack {
-    JobTest(new scalding.ml.KnnJob(_))
-      .source(TypedTsv[(Int, String, Double, Double, Double, Double)]("inputFile"), iris)
-      .sink[(Int, Int)](TypedTsv[(Int, Int)]("outputFile")){ outputBuffer =>
+    JobTest(new scalding.ml.dsp.DigitalFilterJob(_))
+      .source(TypedTsv[(Long, Double)]("inputFile"), noisey)
+      .sink[(Int, Long, Double)](TypedTsv[(Int, Long, Double)]("outputFile")){ outputBuffer =>
         val outList = outputBuffer.toList
-        "Match scikit-learn's results" in {
-          val matches = for (pt <- outList) yield {if (scikitResults(pt._1) == pt._2) true else false}
-          matches.filter(i=>i==false).size must_== 0
+        "Have equal input and output lengths" in {
+          outList.size must_== noisey.size
+        }
+
+        "Match scipy's results" in {
+          val res = outList.map(tup => math.abs(filtered(tup._1) - tup._2)).filter(i=>i<.02)
+          res.size must_== outList.size
         }
       }
       .run

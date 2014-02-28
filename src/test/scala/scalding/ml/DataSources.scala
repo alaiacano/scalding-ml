@@ -31,15 +31,15 @@ object DataSources {
 
 
   /////////////////////// DSP STUFF
-  def dspNoisey : Seq[Double] = loadSingleColumn[Double]("/dsp/noisey.tsv")
-  def dspClean  : Seq[Double] = loadSingleColumn[Double]("/dsp/filtered.tsv")
+  def dspNoisey   : Seq[(Long, Double)] = loadSingleColumn("/dsp/noisey.tsv").zipWithIndex.map(i => (i._2.toLong + 1, i._1))
+  def dspFiltered : Seq[(Long, Double)] = loadSingleColumn("/dsp/filtered.tsv").zipWithIndex.map(i => (i._2.toLong + 1, i._1))
 
 
   /////////////////////// TOOLS
-  private def loadSingleColumn[T](path: String) : Seq[T] = {
+  private def loadSingleColumn(path: String) : Seq[Double] = {
     Source.fromURL(getClass.getResource(path))
           .mkString
           .split("\n")
-          .map { line => line.asInstanceOf[T] }
+          .map { line => line.toDouble }
   }
 }

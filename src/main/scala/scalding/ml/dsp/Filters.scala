@@ -6,9 +6,10 @@ import com.twitter.scalding.typed.Grouped
 
 import scala.collection.mutable.ListBuffer
 
-object Dsp {
+object Filters {
+  import TDsl._
 
-  def iir[K](data: Grouped[K,(Long, Double)], zeros: Seq[Double], poles: Seq[Double], samplingTime : Long) = {
+  def iir[K](data: Grouped[K,(Long, Double)], zeros: Seq[Double], poles: Seq[Double], samplingTime : Long) : KeyedList[K, (Long, Double)] = {
 
     // single pole option means we can just use a very simple scanLeft.
     (poles.size, zeros.size) match {
@@ -16,7 +17,7 @@ object Dsp {
       // single-pole version is simple
       case (1, 0) => {
         data
-          .scanLeft(0L, 0.0) {
+          .scanLeft[(Long, Double)](0L, 0.0) {
             case ((lastTime, lastValue), (newTime, newValue)) => (newTime, newValue + poles(0) * lastValue)
           }
       }
@@ -27,7 +28,7 @@ object Dsp {
         val prevOutputs = ListBuffer.fill[Double](poles.size)(0.0)
         data
           // flatmap?
-          .scanLeft(0L, 0.0) {
+          .scanLeft[(Long, Double)](0L, 0.0) {
               case ((lastTime, lastValue), (newTime, newValue)) =>
 
                 // update input buffer
@@ -43,7 +44,6 @@ object Dsp {
 
                 (newTime, newOutput)
           }
-
       }
     }
   }
