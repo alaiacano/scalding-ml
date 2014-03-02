@@ -26,9 +26,9 @@ b, a = signal.butter(8, 0.125)
 y = signal.filtfilt(b, a, x)
 
 with open("noisey.tsv", "wb") as f:
-    for pt in x:
-        f.write(str(pt) + "\n")
+    for i, pt in enumerate(x):
+        f.write(str(i+1) + "\t" + str(pt) + "\n")
 
 with open("filtered.tsv", "wb") as f:
-    for pt in y:
-        f.write(str(pt) + "\n")
+    for i, pt in enumerate(y):
+        f.write(str(i+1) + "\t" + str(pt) + "\n")
